@@ -1,11 +1,33 @@
 async function loadData() {
     console.log("Aquí estoy 1");
-    try {
-        const result = await fetch("https://luisgbackend.vercel.app/books");
-        if (!result.ok) {
-            throw new Error(`¡Error HTTP! Estado: ${result.status}`);
+    const query = `
+        query {
+            books {
+                id
+                year
+                name
+                pages
+                author
+                status
+            }
         }
-        return result.json(); // Devolver los datos como JSON
+    `;
+
+    try {
+        const response = await fetch("http://localhost:3600", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`¡Error HTTP! Estado: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result.data.books; // Devolver los datos de libros obtenidos desde GraphQL
     } catch (err) {
         console.error('Error al obtener datos:', err);
         return null;
@@ -13,38 +35,46 @@ async function loadData() {
 }
 
 loadData()
-    .then(data => {
-        if (!data || !data.data) return; // Salir si no hay datos o no hay un array en data.data
-        console.log(data);  // Verifica la estructura de los datos
-        const bookCount = document.querySelector("#tbody");
+    .then(books => {
+        if (!books) return; // Salir si no hay datos de libros
+
+        console.log(books); // Verifica la estructura de los datos
+
+        const bookCount = document.querySelector("#book-count");
         if (bookCount) {
-            bookCount.textContent = data.data.length;  // Actualiza el número de libros
-            console.log(bookCount.textContent);
+            bookCount.textContent = books.length; // Actualiza el número de libros
+            console.log(`Cantidad de libros: ${books.length}`);
         } else {
             console.error('Elemento #book-count no encontrado');
         }
 
-        const tBody = document.querySelector("#tBody");  // Si tienes una tabla para mostrar los libros
-        data.data.forEach(book => {
-            const row = document.createElement('tr');
+        const tBody = document.querySelector("#tBody"); // Si tienes una tabla para mostrar los libros
+        if (tBody) {
+            tBody.innerHTML = ''; // Limpiar contenido previo de la tabla
 
-            const colYear = document.createElement('td');
-            colYear.appendChild(document.createTextNode(book.year));
-            row.append(colYear);
+            books.forEach(book => {
+                const row = document.createElement('tr');
 
-            const colName = document.createElement('td');
-            colName.appendChild(document.createTextNode(book.name));
-            row.append(colName);
+                const colYear = document.createElement('td');
+                colYear.textContent = book.year;
+                row.appendChild(colYear);
 
-            const colPages = document.createElement('td');
-            colPages.appendChild(document.createTextNode(book.pages));
-            row.append(colPages);
+                const colName = document.createElement('td');
+                colName.textContent = book.name;
+                row.appendChild(colName);
 
-            const colAuthor = document.createElement('td');
-            colAuthor.appendChild(document.createTextNode(book.author));
-            row.append(colAuthor);
+                const colPages = document.createElement('td');
+                colPages.textContent = book.pages;
+                row.appendChild(colPages);
 
-            tBody.appendChild(row);
-        });
+                const colAuthor = document.createElement('td');
+                colAuthor.textContent = book.author;
+                row.appendChild(colAuthor);
+
+                tBody.appendChild(row);
+            });
+        } else {
+            console.error('Elemento #tBody no encontrado');
+        }
     })
     .catch(err => console.error('Error al procesar datos:', err));

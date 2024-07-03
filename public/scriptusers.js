@@ -1,52 +1,82 @@
 async function loadData() {
-    console.log("aqui estoy 1");
+    console.log("Aquí estoy 1");
     try {
-        const result = await fetch("http://localhost:3000/user");
-        if (!result.ok) {
-            throw new Error(`HTTP error! Status: ${result.status}`);
+        const userQuery = `
+            query {
+                users {
+                    id
+                    name
+                    email
+                    book {
+                    id
+                    name
+                    author
+                    }
+                }
+            }
+        `;
+
+        const response = await fetch("http://localhost:3600", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query: userQuery })
+        });
+
+        if (!response.ok) {
+            throw new Error(`¡Error HTTP! Estado: ${response.status}`);
         }
-        return result.json(); // Devolver los datos como JSON
-        
+
+        const result = await response.json();
+        return result.data.users; // Devolver los datos de usuarios obtenidos desde GraphQL
     } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error('Error al obtener datos:', err);
         return null;
     }
-    
 }
 
 loadData()
-    .then(data => {
-        if (!data || !data.data) return; // Salir si no hay datos o no hay un array en data.data
-        console.log(data);  // Verifica la estructura de los datos
-        const userCount = document.querySelector("#tboody");
+    .then(users => {
+        if (!users) return; // Salir si no hay datos de usuarios
+
+        console.log(users); // Verifica la estructura de los datos
+
+        const userCount = document.querySelector("#user-count");
         if (userCount) {
-            userCount.textContent = data.data.length;  // Actualiza el número de usuarios
-            console.log(userCount.textContent);
+            userCount.textContent = users.length; // Actualizar el número de usuarios
+            console.log(`Cantidad de usuarios: ${users.length}`);
         } else {
-            console.error('Element #user-count not found');
+            console.error('Elemento #user-count no encontrado');
         }
 
-        const tBody = document.querySelector("#tBody");  // Si tienes una tabla para mostrar los usuarios
-        data.data.forEach(user => {
-            const row = document.createElement('tr');
+        const tBody = document.querySelector("#tBody"); // Si tienes una tabla para mostrar los usuarios
+        if (tBody) {
+            tBody.innerHTML = ''; // Limpiar contenido previo de la tabla
 
-            const colName = document.createElement('td');
-            colName.appendChild(document.createTextNode(user.name));
-            row.append(colName);
+            users.forEach(user => {
+                const row = document.createElement('tr');
 
-            const colEmail = document.createElement('td');
-            colEmail.appendChild(document.createTextNode(user.email));
-            row.append(colEmail);
+                const colName = document.createElement('td');
+                colName.textContent = user.name;
+                row.appendChild(colName);
 
-            const colNameBook = document.createElement('td');
-            colNameBook.appendChild(document.createTextNode(user.book));
-            row.append(colNameBook)
-            
-            const colUserId = document.createElement('td');
-            colUserId.appendChild(document.createTextNode(user._id));
-            row.append(colUserId)
+                const colEmail = document.createElement('td');
+                colEmail.textContent = user.email;
+                row.appendChild(colEmail);
 
-            tBody.appendChild(row);
-        });
+                const colNameBook = document.createElement('td');
+                colNameBook.textContent = user.book ? user.book.name : 'N/A';
+                row.appendChild(colNameBook);
+
+                const colUserId = document.createElement('td');
+                colUserId.textContent = user.id;
+                row.appendChild(colUserId);
+
+                tBody.appendChild(row);
+            });
+        } else {
+            console.error('Elemento #tBody no encontrado');
+        }
     })
-    .catch(err => console.error('Error processing data:', err));
+    .catch(err => console.error('Error al procesar datos:', err));
